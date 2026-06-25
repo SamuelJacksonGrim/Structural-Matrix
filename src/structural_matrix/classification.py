@@ -43,6 +43,7 @@ class Features:
         "entropy_var_norm",
         "predictability",
         "anchor_cycle_conf",
+        "periodic_anchor_strength",
         "modular_strength",
         "cluster_strength",
         "scv_signal",
@@ -123,6 +124,26 @@ def compute_features(
                 if cv <= 0.5:
                     anchor_cycle_conf = max(anchor_cycle_conf, 1.0 - cv)
 
+    # Periodic anchor: a symbol that recurs at a near-constant interval is
+    # structure even when its successors churn (high transition entropy). The
+    # transition-determinism anchor above misses this; periodicity catches it.
+    # Gated strictly (CV/0.3) so a regular beat counts but a drifting/floating
+    # anchor (irregular spacing) does not.
+    periodic_anchor_strength = 0.0
+    if n > 1:
+        for s in alphabet:
+            pos = occ[s]
+            if len(pos) >= 3:
+                gaps = [b - a for a, b in zip(pos, pos[1:])]
+                m = sum(gaps) / len(gaps)
+                if m > 0:
+                    cv = pstdev(gaps) / m
+                    regularity = max(0.0, 1.0 - cv / 0.3)
+                    span = (pos[-1] - pos[0]) / (n - 1)
+                    periodic_anchor_strength = max(
+                        periodic_anchor_strength, regularity * span
+                    )
+
     cov, tlen = _best_template_coverage(sequence.symbols)
     modular_strength = cov * (1.0 if tlen >= 3 else 0.4)
 
@@ -147,6 +168,7 @@ def compute_features(
         entropy_var_norm=entropy_var_norm,
         predictability=predictability,
         anchor_cycle_conf=anchor_cycle_conf,
+        periodic_anchor_strength=periodic_anchor_strength,
         modular_strength=modular_strength,
         cluster_strength=cluster_strength,
         scv_signal=scv_signal,
@@ -165,12 +187,18 @@ class StandardClassifier:
         motifs: MotifSet,
     ) -> Classification:
         f = compute_features(sequence, bv, scv, motifs)
-        structure = max(f.modular_strength, f.cluster_strength, f.anchor_cycle_conf)
+        structure = max(
+            f.modular_strength,
+            f.cluster_strength,
+            f.anchor_cycle_conf,
+            f.periodic_anchor_strength,
+        )
 
         scores: Dict[StructuralClass, float] = {
             StructuralClass.RANDOM: 1.5 * f.distinct_ratio - structure,
             StructuralClass.ENGINEERED: (
                 1.2 * f.anchor_cycle_conf
+                + 0.8 * f.periodic_anchor_strength
                 + 0.6 * (f.predictability * f.reuse)
                 + 0.3 * f.cluster_strength
             ),

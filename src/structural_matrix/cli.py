@@ -40,6 +40,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     src = p.add_mutually_exclusive_group()
     src.add_argument("--text", help="sequence as a string (read stdin if omitted)")
+    src.add_argument(
+        "--file",
+        help="read the sequence from a file (a captured token/ID stream); "
+        "the read-only tap for measuring another program's output",
+    )
     p.add_argument(
         "--chars",
         action="store_true",
@@ -89,7 +94,13 @@ def _render_human(report) -> str:
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
 
-    raw = args.text if args.text is not None else sys.stdin.read()
+    if args.file is not None:
+        with open(args.file, "r", encoding="utf-8") as fh:
+            raw = fh.read()
+    elif args.text is not None:
+        raw = args.text
+    else:
+        raw = sys.stdin.read()
     sep = "" if args.chars else args.sep
     seq = Sequence.from_text(raw, sep=sep)
 

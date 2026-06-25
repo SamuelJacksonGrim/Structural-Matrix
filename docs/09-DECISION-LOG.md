@@ -85,6 +85,42 @@ alternatives weighed, and the consequence. Referenced by ID from the other docs.
 - **Consequence:** C-4 holds by construction; the path to embedding-based
   analysis is a new `BehaviourAnalyzer` that reads `SymbolVector.values`.
 
+## D-008 · The engine is a standalone universal instrument (no source coupling)
+
+- **Context:** The Structural Matrix is intended, among other things, to measure
+  the output of RFE-Core2 (a symbolic ecology). The tempting move was to build an
+  adapter that couples the two.
+- **Decision:** Keep the engine **domain-agnostic and uncoupled**. To measure
+  another program, capture its emitted stream and feed it in read-only
+  (`analyze_file` / `--file`). No write-back, no knowledge of the source.
+- **Alternatives:** A bidirectional integration (analyzer feeds the reaper /
+  `signal_*` methods) wired in now.
+- **Why:** Universality is the whole premise — it eats any symbol sequence and
+  ignores meaning. Measurement-as-a-separate-program is the least-foreclosing path:
+  both halves stay independent, nothing is over-committed, and a future closed loop
+  remains fully optional. Freezing an integration contract now would spend
+  optionality we can't yet justify.
+- **Consequence:** The only integration surface is a read-only tap. Any future
+  control loop (verdict → reaper) is a separate, opt-in seam designed against the
+  real `signal_*` inputs when they're known — not inferred today.
+
+## D-009 · Anchors are recognised by periodicity, not only transition-determinism
+
+- **Context (loop iteration 8):** A symbol recurring at a perfectly regular period
+  but with churning successors (a periodic sacred-marker amid reaping) was
+  classified RANDOM, because the engine only saw anchors via low transition
+  entropy.
+- **Decision:** Add a strictly-gated `periodic_anchor_strength` feature (regularity
+  × span) to both the classifier and the role assigner, so positional periodicity
+  counts as structure independent of transition entropy.
+- **Why:** The methodology itself defines anchors as symbols that "repeat at
+  relatively regular intervals" (§3.1) — pure periodicity was a real gap, and it is
+  exactly the shape a rhythmic structural marker takes in a live ID stream.
+- **Consequence:** Periodic markers read as ANCHOR (role) and pull the verdict
+  toward ENGINEERED (structured), not RANDOM. The strict CV gate (≤ 0.15 for roles,
+  CV/0.3 weighting for the score) keeps drifting/floating anchors out, so no
+  worked-example classification or role moved.
+
 ---
 
 ### How decisions get made here

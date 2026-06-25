@@ -42,6 +42,36 @@ def _occurrence_index(sequence: Sequence) -> Dict[str, List[int]]:
     return idx
 
 
+def _periodic_anchor_symbols(
+    occ: Dict[str, List[int]],
+    n: int,
+    *,
+    max_cv: float = 0.15,
+    min_span: float = 0.5,
+) -> set:
+    """Symbols that recur at a near-constant interval across the sequence.
+
+    These are structural anchors by *rhythm* even when their successors churn
+    (high transition entropy) — e.g. a periodic sacred/marker ID amid reaping.
+    Gated strictly so a drifting (irregular) anchor does not qualify.
+    """
+    from statistics import pstdev
+
+    out = set()
+    if n <= 1:
+        return out
+    for s, pos in occ.items():
+        if len(pos) >= 3:
+            gaps = [b - a for a, b in zip(pos, pos[1:])]
+            m = sum(gaps) / len(gaps)
+            if m > 0:
+                cv = pstdev(gaps) / m
+                span = (pos[-1] - pos[0]) / (n - 1)
+                if cv <= max_cv and span >= min_span:
+                    out.add(s)
+    return out
+
+
 class StandardRoleAssigner:
     """Default role assigner with adaptive, sequence-derived thresholds."""
 
@@ -89,6 +119,7 @@ class StandardRoleAssigner:
         occ = _occurrence_index(sequence)
         first_zone = max(1, int(self.frame_fraction * n))
         last_zone = n - first_zone
+        periodic_anchors = _periodic_anchor_symbols(occ, n)
 
         # Degenerate case: entropy is uniform, so the bands cannot separate roles.
         # Fall back to structural signals (frequency, clusters, edges) instead of
@@ -109,8 +140,11 @@ class StandardRoleAssigner:
                 roles.append(Role.TERMINATOR)
                 continue
 
-            # 2. Anchor: low entropy, stable.
-            if h < tau_a:
+            # 2. Anchor: low entropy *or* strong positional periodicity. The latter
+            # catches a rhythmic recurring marker whose successors churn (so its
+            # transition entropy is high) — keeps roles consistent with the
+            # periodicity the classifier honours.
+            if h < tau_a or sym in periodic_anchors:
                 roles.append(Role.ANCHOR)
                 continue
 

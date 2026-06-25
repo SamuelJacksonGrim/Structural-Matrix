@@ -114,15 +114,104 @@ the same cycle and is recorded below verbatim, newest at the bottom.
 
 ---
 
-## Loop status: STABLE GREEN
+## Checkpoint after iteration 6 — STABLE GREEN (build phase)
 
 6 iterations, gate green at every commit point. Headline behaviour (all four
 worked examples + 3D override) is locked by both `tests/` and `loop/check.py`
-invariants. Next candidate hypotheses, when work resumes:
+invariants. (Resumed below at iteration 7 after the developer spec and the
+RFE-Core2 measurement use-case were introduced.)
 
-- H5: frequency-mapping vs ordinal-mapping should not change *classification*
-  (mapping-agnostic claim, methodology §2) — assert invariance across mappers.
-- H6: an injected custom `Classifier` swaps cleanly via the `interfaces` seam
-  (prove the Open/Closed boundary with a stub).
-- H7: entropy-cascade detection on a hand-built monotonic ramp.
+---
+
+## Iteration 7 — Spec-conformant facade (`analyze_sequence`)
+
+Context: `docs/DEVELOPER_SPEC.md` (Mark's spec) pins an exact public API and output
+contract. Goal is to satisfy it *additively* — a facade over the existing engine —
+without disturbing the proven internals, and to keep the engine a **standalone
+universal instrument** (no RFE-Core2 coupling; pure measurement).
+
+- **Hypothesis:** A thin `StructuralMatrixAnalyzer` + `analyze_sequence()` can emit
+  the spec's exact dict (symbol→role, role_sequence, role-level transition matrix,
+  scalar `symbol_entropy`/`transition_entropy`, `cluster_stats`, UPPERCASE 4-class
+  label) by *reshaping* an `AnalysisReport` — changing no stage logic and flipping
+  no existing test.
+- **Predicted failures if wrong:** symbol→role aggregation is ambiguous when a
+  symbol plays two roles across positions (resolve by dominant behaviour, per spec
+  §3.2); `THREE_D_DRIVEN` leaking into a 4-class contract (facade passes no
+  proximity, so it cannot fire — assert it).
+- **Implemented:** `analyzer.py` (`StructuralMatrixAnalyzer` + `analyze_sequence`);
+  `docs/DEVELOPER_SPEC.md` added as source of truth; `tests/test_spec_api.py`.
+- **Test:** gate green — TESTS 60/60 ✓, INVARIANTS 11/11 ✓.
+- **Marked:** ✅ Confirmed exactly as predicted. Output dict matches the spec field
+  for field; `roles` = `{A:ANCHOR, B:TRANSITION, C:CONTENT}` reproduces the
+  methodology's Example 1 by hand; the role-transition matrix surfaces the
+  `ANCHOR→TRANSITION→CONTENT→ANCHOR` cycle. No internal logic touched; no existing
+  test changed.
+
+---
+
+## Iteration 8 — Scale to ID streams + a read-only file tap
+
+Context: the engine must be a *standalone universal instrument*. To measure another
+program (e.g. RFE-Core2) it should ingest that program's emitted stream directly —
+a long sequence of token/stable IDs — with no coupling, just a way to read a file.
+
+- **Hypothesis:** The pipeline stays total and fast (sub-second) on a 20k-token
+  stream with a large, *growing* integer-ID alphabet (births/reaps over time), and
+  a `--file` / `analyze_file` tap can read such a captured stream straight in.
+- **Predicted failures if wrong:** O(n·L) n-gram/template scans blow up on large n;
+  or a huge distinct-ID count makes `max_possible = log2|Σ|` normalisation
+  swamp the entropy features (everything reads as RANDOM regardless of structure).
+- **Implemented:** `analyze_file` + CLI `--file` (the read-only tap); `test_scale.py`
+  (20k growing-ID stream + huge-alphabet structured stream + file ingestion).
+- **Test:** 20k stream analysed in **< 0.5 s** — performance hypothesis ✅.
+- **Marked:** ⚠️ Refuted-in-part — the **semantic** failure mode fired exactly as
+  predicted: a symbol recurring at a *perfectly regular period* but with churning
+  successors (an RFE-style periodic sacred-anchor amid reaping) classified RANDOM,
+  because the engine only recognised anchors via transition-determinism, never pure
+  positional periodicity. **Fix:** added a strictly-gated `periodic_anchor_strength`
+  feature (regularity × span, CV/0.3 gate) that counts as structure (lowers RANDOM)
+  and reinforces ENGINEERED. Worked examples held (Example 2's drifting X has CV 0.27
+  → contributes ~0.08, far below the flip threshold); the big-alphabet stream now
+  reads ENGINEERED. Performance unaffected.
+
+---
+
+## Iteration 9 — Periodic anchors get the ANCHOR *role* (honest roles)
+
+- **Hypothesis:** After iter 8 the *classifier* honours periodicity but the *role
+  assigner* still calls a periodic-but-high-entropy symbol `CONTENT` — so the
+  per-symbol roles contradict the verdict (same class of bug as D-005). Teaching
+  the role assigner to label a strongly-periodic recurring symbol (count ≥ 3,
+  CV ≤ 0.15, span ≥ 0.5) as `ANCHOR` will fix the contradiction *without* moving
+  any worked-example role (Example 2's X is already an anchor by entropy; Examples
+  1/3/4 have no strongly-periodic high-entropy symbol).
+- **Predicted failures if wrong:** Example 4 (degenerate/uniform path) or Example 1
+  roles shift, breaking the role-coverage / diversity tests.
+- **Implemented:** `_periodic_anchor_symbols` (CV ≤ 0.15, span ≥ 0.5, count ≥ 3) and
+  a periodicity clause in the role precedence; regression test.
+- **Test:** gate green — TESTS 65/65 ✓, INVARIANTS 11/11 ✓.
+- **Marked:** ✅ Confirmed exactly as predicted. `A0` now reports role `ANCHOR`
+  (was `CONTENT`), consistent with the ENGINEERED verdict; no worked-example role
+  moved (the strict CV gate excludes Example 2's drifting X at CV 0.27).
+
+---
+
+## Loop status: STABLE GREEN (measurement phase)
+
+9 iterations, gate green at every commit point. The engine is now a
+**spec-conformant, standalone universal instrument**: `analyze_sequence()` emits
+Mark's exact dict; `analyze_file()` / `--file` taps a captured stream from any
+source; it ingests 20k-token growing-ID streams in < 0.5 s and recognises periodic
+structure (sacred-anchor-style markers) that pure transition entropy misses — all
+with **zero coupling** to RFE-Core2 (pure measurement, per the agreed boundary).
+
+Next candidate hypotheses, when work resumes:
+
+- H10: role-level motif matching (the spec's `A→T→C→X→A` cycle / `C→X→A` terminator
+  lock as role-string patterns), augmenting the entropy-based detectors.
+- H11: an `Entropy Cascade` first-half-vs-second-half regime split (spec §5.7) — a
+  natural health signal for a stream that degrades from structure into noise.
+- H12: a streaming/incremental mode so a long live stream can be measured in
+  windows rather than all at once.
 

@@ -34,6 +34,7 @@ crossed.
 | `motifs.py` | pattern detectors | a motif is added/tuned | `StandardMotifDetector` |
 | `classification.py` | features → scores → argmax | the verdict logic changes | `StandardClassifier`, `compute_features`, `Features` |
 | `pipeline.py` | stage wiring + defaults | the stage *order* changes | `StructuralMatrix` |
+| `analyzer.py` | spec-conformant facade + read-only stream tap | the spec's output contract changes | `StructuralMatrixAnalyzer`, `analyze_sequence`, `analyze_file` |
 | `serialization.py` | report → JSON-able dict | the external JSON shape changes | `report_to_dict` |
 | `cli.py` / `__main__.py` | argument parsing + rendering | the CLI surface changes | `main`, `build_parser` |
 
