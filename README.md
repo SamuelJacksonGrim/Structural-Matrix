@@ -1,344 +1,108 @@
-STRUCTURAL MATRIX — COMPLETE UNABRIDGED METHODOLOGY
-===================================================
+# Structural Matrix
+
+> A behaviour-first engine that extracts **universal structure** from symbolic
+> systems — by ignoring meaning and measuring how symbols *behave*.
+
+The Structural Matrix reads any sequence of symbols (DNA, a conlang, a cipher, an
+AI-generated script, abstract tokens) and reports the **structural class** it
+belongs to — `Natural`, `Engineered`, `Constructed`, `Random`, or `3D-Driven` —
+together with the roles, motifs, entropy and transition behaviour that justify the
+verdict. It treats all information as mechanical structure.
+
+```text
+   S ──▶ SV ──▶ BV ──▶ SCV ──▶ Roles ──▶ Motifs ──▶ Classification
+ symbols  map  behaviour spatial  roles    motifs      the verdict
+```
+
+## Quick start
+
+```bash
+# No dependencies — pure Python standard library (3.9+).
+python -m structural_matrix --text "A B B C A B C C C A"
+```
+
+```text
+CLASS       : Engineered   (confidence 0.52)
+Scores      : Engineered=1.46, Natural=0.20, Constructed=0.15, 3D-Driven=0.00, Random=-0.44
+Roles       : Anchor×3, Transition×3, Content Block×4
+Motifs      : Anchor-Driven Cycle(0.89), Cluster Burst(0.60), Modular Block(0.80), Hybrid Motif(0.90)
+```
+
+As a library:
+
+```python
+from structural_matrix import StructuralMatrix
+
+engine = StructuralMatrix()
+report = engine.analyze("A A B A A B C C A A B")
+print(report.classification.label)          # StructuralClass.CONSTRUCTED
+print(report.classification.scores)          # full, inspectable score vector
+```
+
+With 3D folding data (proximity contacts override the symbolic signal):
+
+```bash
+python -m structural_matrix --text "ACGTACGTACGT" --chars \
+  --proximity "0,11,9; 1,10,9; 2,9,9"
+```
+
+## Why it exists
+
+Most analysis tools ask *what does this mean?* The Structural Matrix asks *how
+does this behave?* — a **consilient structure filter** that finds the same
+invariants across writing systems, biology, cryptography and engineered data by
+isolating pure behaviour. See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) for the
+full formal model.
+
+## How it works (the pipeline)
+
+| Stage | Module | Produces |
+|------|--------|----------|
+| Symbol Vector | `mapping.py` | `f : Σ → ℝ` numeric encoding |
+| Behaviour Vector | `behaviour.py` | positional weight, transition matrix, local entropy |
+| Spatial Cohesion | `cohesion.py` | per-position 3D contact scores |
+| Roles | `roles.py` | Anchor / Frame / Transition / Content / Terminator |
+| Motifs | `motifs.py` | cycles, bursts, modular blocks, cascades, … |
+| Classification | `classification.py` | argmax over an explainable score vector |
+
+Every stage is an injectable interface — swap the classifier, the mapper, the
+motif detector without touching the orchestrator.
+
+## Project map
+
+```
+src/structural_matrix/   the engine (one module per pipeline stage)
+tests/                   45 tests: stage units, worked examples, fuzz, architecture
+loop/                    the autonomous build loop: check.py (gate) + DEVLOG.md
+docs/                    the 10 architecture artifacts (read 10 → 1)
+```
+
+## Documentation — the 10 artifacts
+
+Read them top-down (structure → behaviour → guarantees → vocabulary → wiring):
+
+1. [Architecture](docs/01-ARCHITECTURE.md) — the city map
+2. [Flows](docs/02-FLOWS.md) — the movie
+3. [Contracts](docs/03-CONTRACTS.md) — the constitution
+4. [Types](docs/04-TYPES.md) — the vocabulary
+5. [Schemas](docs/05-SCHEMAS.md) — the conceptual map
+6. [Interfaces](docs/06-INTERFACES.md) — the plug sockets
+7. [Dependencies](docs/07-DEPENDENCIES.md) — the wiring rules
+8. [Modules](docs/08-MODULES.md) — the org chart
+9. [Decision Log](docs/09-DECISION-LOG.md) — the diary
+10. This README — the front door
+
+## Development
+
+```bash
+pip install -e ".[dev]"     # optional: editable install + pytest
+python loop/check.py        # the quality gate: import + tests + invariants
+pytest -q                   # the test suite alone
+```
 
-A Universal Behaviour‑First Framework for Analyzing Symbolic and 3D Structural Systems
---------------------------------------------------------------------------------------
+The build is driven by an autonomous loop (OBSERVE → HYPOTHESIZE → IMPLEMENT →
+TEST → MARK → REFINE); its diary is [`loop/DEVLOG.md`](loop/DEVLOG.md).
 
-The Structural Matrix is a domain‑agnostic analytical engine for extracting universal
-structural behaviour from symbolic systems. It operates on behaviour, not semantics.
-It reveals roles, motifs, transitions, entropy patterns, and global dynamics across:
+## License
 
-• writing systems
-• conlangs
-• ritual/magical symbol sets
-• AI‑generated scripts
-• cryptographic sequences
-• abstract symbolic or numeric data
-• 3D biological architectures (DNA folding)
-
-It treats all information as mechanical structure.
-
-----------------------------------------------------
-CONSILIENT STRUCTURE FILTER (PHILOSOPHICAL BASIS)
-----------------------------------------------------
-
-The Structural Matrix functions as a consilient structure filter: a system that extracts
-cross‑domain structural invariants by ignoring meaning and isolating pure behaviour.
-
-It identifies shared patterns across symbolic, biological, engineered, and abstract systems.
-
-All information is treated as structural behaviour.
-
-===========================
-FORMAL MATHEMATICAL MODEL
-===========================
-
--------------------------
-1. FORMAL INPUT DEFINITION
--------------------------
-
-Let a symbolic sequence be:
-
-S = (s₁, s₂, …, sₙ)
-
-Each sᵢ ∈ Σ (arbitrary alphabet).
-
-Optional 3D proximity set:
-
-P = { (i, j, wᵢⱼ) }
-
-Where:
-• i, j are indices
-• wᵢⱼ ∈ ℝ⁺ is spatial cohesion weight
-
--------------------------
-2. SYMBOL VECTOR (SV)
--------------------------
-
-Define mapping:
-
-f : Σ → ℝ
-
-Mapped sequence:
-
-SV = (f(s₁), f(s₂), …, f(sₙ))
-
-Mapping strategies:
-• ordinal mapping
-• frequency‑based mapping
-• embedding‑based mapping
-• custom encodings
-
-The Structural Matrix is mapping‑agnostic.
-
--------------------------
-3. BEHAVIOUR VECTOR (BV)
--------------------------
-
-BV captures positional behaviour, transitions, and local entropy.
-
-3.1 Positional Weight:
-pwᵢ = i / n
-
-3.2 Transition Frequency:
-T(sᵢ, sⱼ) = count of transitions sᵢ → sⱼ
-
-Normalized:
-P(sᵢ → sⱼ) = T(sᵢ, sⱼ) / Σₖ T(sᵢ, sₖ)
-
-3.3 Local Entropy:
-Hᵢ = − Σⱼ P(sᵢ → sⱼ) log P(sᵢ → sⱼ)
-
-BVᵢ = (pwᵢ, Hᵢ, {P(sᵢ → sⱼ)})
-
--------------------------
-4. SPATIAL COHESION VECTOR (SCV)
--------------------------
-
-For each (i, j) ∈ P:
-
-SCVᵢⱼ = wᵢⱼ
-
-Cohesion score:
-Cᵢ = Σⱼ wᵢⱼ
-
-SCV = (C₁, C₂, …, Cₙ)
-
-Models:
-• loops
-• domains
-• boundaries
-• folding‑driven interactions
-
--------------------------
-5. ROLE ASSIGNMENT
--------------------------
-
-Roles emerge from behaviour:
-
-Anchor:
-Hᵢ < τ_A  
-Low entropy, stable, often early or cyclic.
-
-Frame:
-pwᵢ ≈ 0 or pwᵢ ≈ 1  
-Boundary markers that segment or enclose.
-
-Transition:
-maxⱼ P(sᵢ → sⱼ) > τ_T  
-Directional connectors between roles.
-
-Content Block:
-Hᵢ > τ_C  
-High‑entropy clusters.
-
-Terminator:
-Hᵢ → 0 and transitions collapse  
-Reliable end‑markers.
-
-Thresholds τ_A, τ_T, τ_C are adaptive.
-
--------------------------
-6. MOTIF DEFINITIONS (FULL EXPANSION)
--------------------------
-
-Anchor‑Driven Cycle:
-A repeating cycle where anchors appear at regular intervals.
-
-Floating Anchor Drift:
-An anchor‑like symbol appears frequently but not in a fixed position.
-
-Cluster Burst:
-A sudden region of high‑entropy symbols forming a dense block.
-
-Modular Block:
-A repeated structural unit appearing in multiple locations.
-
-Boundary Frame:
-Distinct symbols at the start and end of the sequence.
-
-Terminator Lock:
-A stable terminator pattern that consistently ends segments.
-
-Entropy Cascade:
-A monotonic rise or fall in entropy across a region.
-
-Null Motif:
-No detectable structural pattern.
-
-Hybrid Motif:
-A combination of two or more motif types.
-
--------------------------
-7. CLASSIFICATION LOGIC (FULL EXPANSION)
--------------------------
-
-Natural:
-• high entropy
-• irregular transitions
-• organic variation
-• no stable cycles
-
-Engineered:
-• stable anchors
-• predictable cycles
-• consistent transitions
-• deliberate structure
-
-Constructed:
-• modular blocks
-• low entropy
-• repeated templates
-• inserted content blocks
-
-Random:
-• no structure
-• no repetition
-• no anchors
-• no motifs
-
-3D‑Driven:
-• SCV dominates BV
-• folding behaviour determines structure
-
-Final class:
-Class = argmax {Natural, Engineered, Constructed, Random, 3D‑Driven}
-
--------------------------
-8. FULL PIPELINE SUMMARY
--------------------------
-
-S → SV → BV → SCV → Roles → Motifs → Classification
-
-Deterministic given fixed mapping.
-
-===========================
-WORKED EXAMPLES (FULL)
-===========================
-
------------------------------------------
-EXAMPLE 1 — SIMPLE ENGINEERED SEQUENCE
------------------------------------------
-
-Input:
-A B B C A B C C C A
-
-Mapping:
-A=1 B=2 C=3
-
-Mapped:
-1 2 2 3 1 2 3 3 3 1
-
-Patterns:
-• clusters: 2 2, 3 3 3
-• transitions: 1→2→3→1
-• repeating cycle
-
-Roles:
-A = Anchor
-B = Transition
-C = Content Block
-
-Classification:
-Engineered
-
------------------------------------------
-EXAMPLE 2 — NATURAL‑LANGUAGE‑LIKE PATTERN
------------------------------------------
-
-Input:
-X Y X Z Y X Y Y Z X Y Z
-
-Mapping:
-X=1 Y=2 Z=3
-
-Patterns:
-• irregular transitions
-• no stable anchor
-• occasional clusters
-
-Roles:
-X = Floating Anchor
-Y = Variable Content
-Z = Irregular Transition
-
-Classification:
-Natural
-
------------------------------------------
-EXAMPLE 3 — HOAX / RANDOM PATTERN
------------------------------------------
-
-Input:
-Q W E R T Y U I O P
-
-Mapping:
-1 2 3 4 5 6 7 8 9 10
-
-Patterns:
-• no clusters
-• no cycles
-• no repetition
-
-Roles:
-none
-
-Classification:
-Random / Hoax
-
------------------------------------------
-EXAMPLE 4 — CONSTRUCTED LANGUAGE PATTERN
------------------------------------------
-
-Input:
-A A B A A B C C A A B
-
-Mapping:
-1 1 2 1 1 2 3 3 1 1 2
-
-Patterns:
-• clusters: 1 1, 3 3
-• repeating cycle: 1 1 → 2
-• modular insertion: 3 3
-
-Roles:
-A = Anchor + Frame
-B = Transition
-C = Inserted Content Block
-
-Classification:
-Constructed
-
-===========================
-GEMINI INSTRUCTIONS (MINIMAL)
-===========================
-
-Task: Generate random DNA of {LENGTH} bases and analyze with Structural Matrix.
-
-1. Generate DNA:
-Alphabet: A C G T
-Length: {LENGTH}
-
-2. Symbol Vector:
-A=1 C=2 G=3 T=4
-
-3. Behaviour Vector:
-pwᵢ = i/n
-Transitions: count + normalize
-Entropy: Hᵢ = −Σ P log P
-
-4. Roles:
-Anchor, Frame, Transition, Content Block, Terminator
-
-5. Motifs:
-Anchor Cycle, Cluster Burst, Boundary Frame, Entropy Cascade, Null, Hybrid
-
-6. Classification:
-Natural, Engineered, Constructed, Random, 3D‑Driven
-
-7. Output:
-DNA → SV → BV → Roles → Motifs → Classification
-
-===========================
-END OF COMPLETE METHODOLOGY
-===========================
+MIT.
