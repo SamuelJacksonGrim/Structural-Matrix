@@ -39,6 +39,37 @@ print(report.classification.label)          # StructuralClass.CONSTRUCTED
 print(report.classification.scores)          # full, inspectable score vector
 ```
 
+Or via the spec-conformant facade (`docs/DEVELOPER_SPEC.md`), which returns a
+plain dict — symbol→role, role-level transition matrix, scalar entropies and an
+UPPERCASE class label:
+
+```python
+from structural_matrix import analyze_sequence
+result = analyze_sequence("A B B C A B C C C A")
+result["classification"]   # "ENGINEERED"
+result["roles"]            # {"A": "ANCHOR", "B": "TRANSITION", "C": "CONTENT"}
+```
+
+### Measuring another program's output (the read-only tap)
+
+The engine is a **universal instrument** — it ingests *any* symbol stream and
+never adapts to its source. To measure another system, capture its emitted token /
+ID stream to a file and point the tap at it (no coupling, read-only):
+
+```bash
+python -m structural_matrix --file captured_stream.txt   # one token per line, or whitespace-separated
+```
+
+```python
+from structural_matrix import analyze_file
+analyze_file("captured_stream.txt")["classification"]    # regime of the stream
+```
+
+It scales to long, growing-vocabulary ID streams (20k tokens in well under a
+second) and recognises periodic structural markers even when their neighbours
+churn — so a rhythmic "anchor" amid high local entropy reads as structure, not
+noise.
+
 With 3D folding data (proximity contacts override the symbolic signal):
 
 ```bash
