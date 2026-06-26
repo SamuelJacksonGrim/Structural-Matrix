@@ -105,7 +105,7 @@ alternatives weighed, and the consequence. Referenced by ID from the other docs.
 ## D-009 · Anchors are recognised by periodicity, not only transition-determinism
 
 - **Context (loop iteration 8):** A symbol recurring at a perfectly regular period
-  but with churning successors (a periodic sacred-marker amid reaping) was
+  but with churning successors (a periodic marker amid churn) was
   classified RANDOM, because the engine only saw anchors via low transition
   entropy.
 - **Decision:** Add a strictly-gated `periodic_anchor_strength` feature (regularity

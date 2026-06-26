@@ -27,7 +27,7 @@ def test_large_growing_id_stream_is_total_and_fast():
         if not live or rng.random() < 0.03:
             live.append(next_id)
             next_id += 1
-            if len(live) > 500:  # bound the working set ("reaping")
+            if len(live) > 500:  # bound the working set (churn)
                 live.pop(0)
         stream.append(str(rng.choice(live)))
 

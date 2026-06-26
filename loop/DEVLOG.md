@@ -119,7 +119,7 @@ the same cycle and is recorded below verbatim, newest at the bottom.
 6 iterations, gate green at every commit point. Headline behaviour (all four
 worked examples + 3D override) is locked by both `tests/` and `loop/check.py`
 invariants. (Resumed below at iteration 7 after the developer spec and the
-RFE-Core2 measurement use-case were introduced.)
+external-stream measurement use-case were introduced.)
 
 ---
 
@@ -128,7 +128,7 @@ RFE-Core2 measurement use-case were introduced.)
 Context: `docs/DEVELOPER_SPEC.md` (Mark's spec) pins an exact public API and output
 contract. Goal is to satisfy it *additively* — a facade over the existing engine —
 without disturbing the proven internals, and to keep the engine a **standalone
-universal instrument** (no RFE-Core2 coupling; pure measurement).
+universal instrument** (no source coupling; pure measurement).
 
 - **Hypothesis:** A thin `StructuralMatrixAnalyzer` + `analyze_sequence()` can emit
   the spec's exact dict (symbol→role, role_sequence, role-level transition matrix,
@@ -153,7 +153,7 @@ universal instrument** (no RFE-Core2 coupling; pure measurement).
 ## Iteration 8 — Scale to ID streams + a read-only file tap
 
 Context: the engine must be a *standalone universal instrument*. To measure another
-program (e.g. RFE-Core2) it should ingest that program's emitted stream directly —
+program it should ingest that program's emitted stream directly —
 a long sequence of token/stable IDs — with no coupling, just a way to read a file.
 
 - **Hypothesis:** The pipeline stays total and fast (sub-second) on a 20k-token
@@ -167,7 +167,7 @@ a long sequence of token/stable IDs — with no coupling, just a way to read a f
 - **Test:** 20k stream analysed in **< 0.5 s** — performance hypothesis ✅.
 - **Marked:** ⚠️ Refuted-in-part — the **semantic** failure mode fired exactly as
   predicted: a symbol recurring at a *perfectly regular period* but with churning
-  successors (an RFE-style periodic sacred-anchor amid reaping) classified RANDOM,
+  successors (a periodic marker amid churn) classified RANDOM,
   because the engine only recognised anchors via transition-determinism, never pure
   positional periodicity. **Fix:** added a strictly-gated `periodic_anchor_strength`
   feature (regularity × span, CV/0.3 gate) that counts as structure (lowers RANDOM)
@@ -239,7 +239,7 @@ a long sequence of token/stable IDs — with no coupling, just a way to read a f
 - **Hypothesis:** A long live stream is better measured as a *timeline* of regimes
   than one global verdict. `analyze_windows(seq, window, step)` will classify each
   window and report where the regime shifts — composing cleanly with §5.7 and
-  giving the RFE use-case a per-window health trace.
+  giving live/long-stream measurement a per-window health trace.
 - **Predicted failures if wrong:** off-by-one window spans at the tail; a final
   short window destabilising the classifier; empty input.
 - **Implemented:** `analyze_windows(seq, window, step)` → per-window class +
@@ -275,7 +275,7 @@ a long sequence of token/stable IDs — with no coupling, just a way to read a f
   frequencies, destroying order), recompute an order-sensitive *structuredness*
   scalar, and compare — yields a p-value that is **small for genuinely structured
   streams** (Example 1) and **~1 for order-free ones** (Example 3, all distinct).
-  This separates real structure from chance, the discipline RFE's gauges need.
+  This separates real structure from chance — the discipline any fragile gauge needs.
 - **Predicted failures if wrong:** structuredness scalar is order-invariant (then
   shuffling changes nothing and everything reads non-significant); Example 3's
   all-distinct stream has 0 structure in both real and shuffled → p-value
@@ -294,7 +294,7 @@ a long sequence of token/stable IDs — with no coupling, just a way to read a f
 - **Hypothesis:** A verdict's robustness can be read two cheap ways: the *margin*
   between the top two class scores, and a *jackknife* (drop one token at a time;
   what fraction keep the same label). A clear engineered/random case will be
-  "robust"; a near-tie will be "fragile". This is the direct readout RFE wants for
+  "robust"; a near-tie will be "fragile". This is the direct readout wanted for
   a seed-fragile gauge.
 - **Predicted failures if wrong:** jackknife too expensive on long streams (sample
   it); n ≤ 2 has no meaningful perturbation (special-case to robust).
@@ -382,8 +382,8 @@ for two streams (regime A/B test); confidence calibration against labelled corpo
 **spec-conformant, standalone universal instrument**: `analyze_sequence()` emits
 Mark's exact dict; `analyze_file()` / `--file` taps a captured stream from any
 source; it ingests 20k-token growing-ID streams in < 0.5 s and recognises periodic
-structure (sacred-anchor-style markers) that pure transition entropy misses — all
-with **zero coupling** to RFE-Core2 (pure measurement, per the agreed boundary).
+structure (periodic markers) that pure transition entropy misses — all
+with **zero coupling** to any source (pure measurement, per the agreed boundary).
 
 Next candidate hypotheses, when work resumes:
 

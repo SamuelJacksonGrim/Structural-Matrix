@@ -52,7 +52,7 @@ def _periodic_anchor_symbols(
     """Symbols that recur at a near-constant interval across the sequence.
 
     These are structural anchors by *rhythm* even when their successors churn
-    (high transition entropy) — e.g. a periodic sacred/marker ID amid reaping.
+    (high transition entropy) — e.g. a periodic marker ID amid churn.
     Gated strictly so a drifting (irregular) anchor does not qualify.
     """
     from statistics import pstdev
