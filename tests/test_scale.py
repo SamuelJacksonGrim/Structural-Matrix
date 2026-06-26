@@ -1,6 +1,6 @@
 """Scale & ingestion tests — the engine as a standalone instrument for ID streams.
 
-A captured stream from another program (e.g. RFE-Core2 stable_ids) is a long
+A captured stream from another program (e.g. token / stable IDs) is a long
 sequence of integer-like tokens with a large, often *growing* alphabet. These
 tests prove the universal instrument ingests that shape without coupling, stays
 total, and runs fast.

@@ -5,8 +5,9 @@ structure — *and how much to trust that report* — while ignoring meaning.
 
 - **Methodology & developer spec:** Mark Thomas ("Rogue Architect") — see
   [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) and [`docs/DEVELOPER_SPEC.md`](docs/DEVELOPER_SPEC.md).
-- **Sibling system:** RFE-Core2 (a symbolic ecology — a natural source of streams
-  to measure; we work from *exported snapshots*, never by cloning the repo).
+- **Inputs:** any captured symbol stream — text, DNA, ciphers, logs, or token/ID
+  streams exported from another program. We measure snapshots; we never import the
+  source.
 
 **Where we are today:** `v0.1` — mechanically complete (105 tests, 11 invariants),
 empirically *uncalibrated*. Real-data testing showed the verdict label needs work
@@ -64,15 +65,15 @@ instead of vibes.*
   compression-ratio proxy) into the structuredness scalar.
 
 ## Phase 3 — Measuring real sources (bring-your-own-stream) 🔭
-*Goal: measure RFE-Core2 (and anything else) without ever importing it.*
+*Goal: measure any external source's output without ever importing it.*
 
 - **Export contract**: a tiny, documented format for a captured stream — one token
   (stable ID / token class / glyph) per line, optional `step,token` columns. The
   source program writes it; we read it. No coupling (decision **D-008**).
 - `analyze_file` / windowed timeline already consume this; add a `--report` that
   emits a shareable summary for a captured snapshot.
-- **Role vs declared-class diff**: when the source tags tokens (e.g. RFE-Core2's
-  TokenClass), compare emergent role ↔ declared class and surface mismatches.
+- **Role vs declared-class diff**: when the source tags tokens with its own
+  classes, compare emergent role ↔ declared class and surface mismatches.
 - 💭 *Opt-in, much later:* a closed loop (verdict → source guidance). Off by
   default; the instrument measures, never reaches in.
 
