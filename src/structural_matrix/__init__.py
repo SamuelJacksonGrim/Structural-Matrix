@@ -18,9 +18,12 @@ from .analyzer import (
     analyze_file,
     analyze_sequence,
     analyze_windows,
+    to_json_safe,
 )
 from .pipeline import StructuralMatrix
 from .serialization import report_to_dict
+from .significance import structure_significance
+from .stability import verdict_stability
 from .types import (
     AnalysisReport,
     BehaviourVector,
@@ -44,6 +47,9 @@ __all__ = [
     "analyze_sequence",
     "analyze_file",
     "analyze_windows",
+    "to_json_safe",
+    "structure_significance",
+    "verdict_stability",
     "report_to_dict",
     "Sequence",
     "SymbolVector",
