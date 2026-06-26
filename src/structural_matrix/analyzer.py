@@ -154,9 +154,33 @@ class StructuralMatrixAnalyzer:
         return Sequence(tuple(str(s) for s in sequence))
 
 
-def analyze_sequence(sequence: Union[str, TSequence[str]]) -> Dict[str, object]:
-    """Spec entry point: analyse a symbolic sequence, return the structured dict."""
-    return StructuralMatrixAnalyzer(sequence).analyze()
+def to_json_safe(result: Dict[str, object]) -> Dict[str, object]:
+    """Render a spec result dict as JSON-serialisable.
+
+    The only non-JSON part of the spec contract is the role-level ``transitions``
+    matrix, which uses ``(from, to)`` tuple keys; here they become ``"FROM->TO"``
+    strings. Everything else is already JSON-native.
+    """
+    out = dict(result)
+    trans = result.get("transitions")
+    if isinstance(trans, dict):
+        out["transitions"] = {
+            (f"{k[0]}->{k[1]}" if isinstance(k, tuple) else str(k)): v
+            for k, v in trans.items()
+        }
+    return out
+
+
+def analyze_sequence(
+    sequence: Union[str, TSequence[str]], *, json_safe: bool = False
+) -> Dict[str, object]:
+    """Spec entry point: analyse a symbolic sequence, return the structured dict.
+
+    With ``json_safe=True`` the role-level ``transitions`` keys are stringified so
+    the result passes straight through ``json.dumps``.
+    """
+    result = StructuralMatrixAnalyzer(sequence).analyze()
+    return to_json_safe(result) if json_safe else result
 
 
 def analyze_windows(

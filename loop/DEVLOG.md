@@ -253,6 +253,62 @@ a long sequence of token/stable IDs — with no coupling, just a way to read a f
 
 ---
 
+## Iteration 13 — JSON-safe spec output
+
+- **Hypothesis:** The spec dict's `transitions` uses `(from, to)` tuple keys, which
+  `json.dumps` rejects. A `json_safe=True` mode (and a `to_json_safe` helper) that
+  renders those keys as `"FROM->TO"` strings makes the facade serialisable without
+  disturbing the default (spec-literal) shape.
+- **Predicted failures if wrong:** the existing `test_role_level_transition_matrix`
+  (expects tuple keys) breaks if I change the default; round-trip mismatch.
+- **Implemented:** `to_json_safe` + `analyze_sequence(json_safe=True)` (stringify
+  transition keys as `"FROM->TO"`); `test_json_safe.py`.
+- **Test:** gate green — TESTS 84/84 ✓, INVARIANTS 11/11 ✓; default keeps tuple
+  keys (spec-literal), `json.dumps` succeeds with the flag.
+- **Marked:** ✅ Confirmed; no existing test disturbed (default unchanged).
+
+---
+
+## Iteration 14 — Permutation null-model significance
+
+- **Hypothesis:** A permutation test — shuffle the stream (preserving symbol
+  frequencies, destroying order), recompute an order-sensitive *structuredness*
+  scalar, and compare — yields a p-value that is **small for genuinely structured
+  streams** (Example 1) and **~1 for order-free ones** (Example 3, all distinct).
+  This separates real structure from chance, the discipline RFE's gauges need.
+- **Predicted failures if wrong:** structuredness scalar is order-invariant (then
+  shuffling changes nothing and everything reads non-significant); Example 3's
+  all-distinct stream has 0 structure in both real and shuffled → p-value
+  degenerate (handle the "no structure either way" case explicitly).
+- **Implemented:** `significance.py` (`structure_significance`, permutation test on
+  an order-sensitive structuredness scalar, add-one-smoothed p-value);
+  `test_significance.py`.
+- **Test:** gate green — TESTS 88/88 ✓, INVARIANTS 11/11 ✓; structured stream
+  p < 0.05 & significant, all-distinct stream not significant, deterministic by seed.
+- **Marked:** ✅ Confirmed exactly as predicted, including the order-free guard.
+
+---
+
+## Iteration 15 — Verdict stability metric
+
+- **Hypothesis:** A verdict's robustness can be read two cheap ways: the *margin*
+  between the top two class scores, and a *jackknife* (drop one token at a time;
+  what fraction keep the same label). A clear engineered/random case will be
+  "robust"; a near-tie will be "fragile". This is the direct readout RFE wants for
+  a seed-fragile gauge.
+- **Predicted failures if wrong:** jackknife too expensive on long streams (sample
+  it); n ≤ 2 has no meaningful perturbation (special-case to robust).
+- **Implemented:** `stability.py` (`verdict_stability`: score margin + sampled
+  jackknife → robust/marginal/fragile); `test_stability.py`.
+- **Test:** gate green — TESTS 93/93 ✓, INVARIANTS 11/11 ✓.
+- **Marked:** ✅ Confirmed; deterministic by seed, short-sequence convention holds.
+
+> **Cycle 2 shipped** (iterations 13–15) → PR #4 → merged. The instrument now also
+> reports *whether to trust its own verdict* (significance + stability) — the
+> interpretation discipline a fragile gauge needs.
+
+---
+
 ## Loop status: STABLE GREEN (measurement phase)
 
 9 iterations, gate green at every commit point. The engine is now a
