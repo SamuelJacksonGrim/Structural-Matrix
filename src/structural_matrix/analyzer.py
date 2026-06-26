@@ -244,6 +244,55 @@ def analyze_windows(
     }
 
 
+def measure(
+    sequence: Union[str, TSequence[str]],
+    *,
+    significance_trials: int = 0,
+    stability: bool = False,
+    window: int | None = None,
+    window_step: int | None = None,
+) -> Dict[str, object]:
+    """One full, JSON-safe instrument readout for a stream.
+
+    Always includes the verdict, confidence, roles, motifs, entropy and the
+    role-transition matrix (single engine run). Opt-in heavier analyses:
+    ``significance_trials > 0`` adds a permutation p-value; ``stability=True`` adds
+    the jackknife/margin robustness; ``window`` adds a regime timeline.
+    """
+    # Local imports avoid a module-level cycle (significance/stability import the
+    # engine, which this module also wires up).
+    from .significance import structure_significance
+    from .stability import verdict_stability
+
+    seq = StructuralMatrixAnalyzer._coerce(sequence)
+    analyzer = StructuralMatrixAnalyzer(seq)
+    report = analyzer._engine.analyze(seq)
+    base = to_json_safe(analyzer._build_result(report))
+
+    out: Dict[str, object] = {
+        "classification": base["classification"],
+        "confidence": round(report.classification.confidence, 4),
+        "n": report.sequence.n,
+        "alphabet_size": len(report.sequence.alphabet),
+        "roles": base["roles"],
+        "motifs": base["motifs"],
+        "entropy": base["entropy"],
+        "transitions": base["transitions"],
+        "significance": (
+            structure_significance(seq, trials=significance_trials)
+            if significance_trials > 0
+            else None
+        ),
+        "stability": verdict_stability(seq) if stability else None,
+        "timeline": (
+            analyze_windows(seq, window, step=window_step)
+            if window
+            else None
+        ),
+    }
+    return out
+
+
 def analyze_file(path: str, *, sep: str | None = None) -> Dict[str, object]:
     """Read a captured token stream from ``path`` and analyse it.
 

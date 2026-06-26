@@ -18,6 +18,7 @@ from .analyzer import (
     analyze_file,
     analyze_sequence,
     analyze_windows,
+    measure,
     to_json_safe,
 )
 from .pipeline import StructuralMatrix
@@ -47,6 +48,7 @@ __all__ = [
     "analyze_sequence",
     "analyze_file",
     "analyze_windows",
+    "measure",
     "to_json_safe",
     "structure_significance",
     "verdict_stability",

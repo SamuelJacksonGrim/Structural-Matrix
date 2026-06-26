@@ -309,6 +309,73 @@ a long sequence of token/stable IDs — with no coupling, just a way to read a f
 
 ---
 
+## Iteration 16 — `measure()`: one full instrument readout
+
+- **Hypothesis:** A single `measure(stream)` that bundles the verdict + confidence
+  + roles + motifs + entropy + (opt-in) significance / stability / windowed
+  timeline into one JSON-safe dict makes the instrument usable in one call —
+  reusing a single engine run for the base so it isn't wasteful.
+- **Predicted failures if wrong:** double-running the pipeline for the base dict;
+  non-JSON values leaking (tuple transition keys) into the bundled output.
+- **Implemented:** `measure()` (single engine run for the base; opt-in
+  significance/stability/timeline); `test_measure.py`.
+- **Test:** gate green — TESTS 97/97 ✓, INVARIANTS 11/11 ✓; base readout is
+  JSON-safe, opt-ins attach correctly.
+- **Marked:** ✅ Confirmed as predicted.
+
+---
+
+## Iteration 17 — CLI surface for the full instrument
+
+- **Hypothesis:** Adding `--spec`, `--measure`, `--windows N`, `--significance N`,
+  `--stability` output modes (composing with `--file`/`--text`/stdin) exposes every
+  capability from the command line without disturbing the default report mode.
+- **Predicted failures if wrong:** flag precedence ambiguity; the default
+  `--json`/human path regresses; argv parsing breaks an existing invocation.
+- **Implemented:** `--spec/--measure/--windows/--significance/--stability` output
+  modes; `test_cli.py` exercising each via `main(argv)`.
+- **Test:** gate green — TESTS 105/105 ✓, INVARIANTS 11/11 ✓; default report path
+  unchanged.
+- **Marked:** ✅ Confirmed; every capability is reachable from the command line.
+
+---
+
+## Iteration 18 — Documentation capstone
+
+- **Hypothesis:** A `docs/MEASUREMENT.md` guide (how to point the instrument at
+  another program's stream, interpret significance/stability/timeline) plus README
+  and module-doc updates makes the full instrument discoverable. Verified by the
+  gate staying green and the docs reflecting the shipped API.
+- **Predicted failures if wrong:** docs drift from the actual API surface.
+- **Implemented:** `docs/MEASUREMENT.md`; README capability table + interrogation
+  examples; module-doc rows for `significance.py` / `stability.py` / `analyzer.py`.
+- **Test:** gate green — TESTS 105/105 ✓, INVARIANTS 11/11 ✓.
+- **Marked:** ✅ Confirmed; docs match the shipped surface.
+
+> **Cycle 3 shipped** (iterations 16–18) → PR #5 → merged.
+
+---
+
+## Loop status: STABLE GREEN — three autonomous PR cycles complete
+
+18 iterations total, gate green at every commit point, **105 tests + 11
+invariants**. Across three merged PR cycles the engine went from a methodology
+document to a **spec-conformant, self-interrogating, universal measurement
+instrument**:
+
+- builds (1–6): the pipeline, honest motifs, robust roles, fuzzed invariants,
+  proven architecture seams.
+- measurement (7–9): spec facade, ID-stream scale, periodic-anchor recognition.
+- enrichment (10–12): role-level motifs, regime split, windowed timeline.
+- discipline (13–15): JSON-safe output, permutation significance, verdict stability.
+- usability (16–18): `measure()`, full CLI surface, measurement guide.
+
+Still **zero coupling** to any source system (D-008): it measures, it never reaches
+in. Next candidate hypotheses: streaming/incremental window updates; a `compare()`
+for two streams (regime A/B test); confidence calibration against labelled corpora.
+
+---
+
 ## Loop status: STABLE GREEN (measurement phase)
 
 9 iterations, gate green at every commit point. The engine is now a
