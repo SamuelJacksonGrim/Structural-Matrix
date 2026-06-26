@@ -13,7 +13,12 @@ See ``docs/`` for the architecture, flows, contracts and decision log.
 
 from __future__ import annotations
 
-from .analyzer import StructuralMatrixAnalyzer, analyze_file, analyze_sequence
+from .analyzer import (
+    StructuralMatrixAnalyzer,
+    analyze_file,
+    analyze_sequence,
+    analyze_windows,
+)
 from .pipeline import StructuralMatrix
 from .serialization import report_to_dict
 from .types import (
@@ -38,6 +43,7 @@ __all__ = [
     "StructuralMatrixAnalyzer",
     "analyze_sequence",
     "analyze_file",
+    "analyze_windows",
     "report_to_dict",
     "Sequence",
     "SymbolVector",

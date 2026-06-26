@@ -159,6 +159,67 @@ def analyze_sequence(sequence: Union[str, TSequence[str]]) -> Dict[str, object]:
     return StructuralMatrixAnalyzer(sequence).analyze()
 
 
+def analyze_windows(
+    sequence: Union[str, TSequence[str]],
+    window: int,
+    *,
+    step: int | None = None,
+) -> Dict[str, object]:
+    """Measure a stream as a *timeline* of regimes rather than one global verdict.
+
+    Splits the sequence into windows of ``window`` tokens (advancing by ``step``,
+    default = ``window`` for non-overlapping windows), classifies each, and reports
+    where the regime shifts. Built for live/long streams — e.g. tracing the health
+    of another program's output over time.
+    """
+    if window <= 0:
+        raise ValueError(f"window must be > 0, got {window}")
+    step = step or window
+    if step <= 0:
+        raise ValueError(f"step must be > 0, got {step}")
+
+    seq = StructuralMatrixAnalyzer._coerce(sequence)
+    symbols = seq.symbols
+    n = len(symbols)
+    engine = StructuralMatrix()
+
+    windows: List[Dict[str, object]] = []
+    idx = 0
+    start = 0
+    while start < n:
+        chunk = symbols[start : start + window]
+        if not chunk:
+            break
+        report = engine.analyze(Sequence(tuple(chunk)))
+        windows.append(
+            {
+                "index": idx,
+                "span": [start, start + len(chunk) - 1],
+                "classification": report.classification.label.name,
+                "confidence": round(report.classification.confidence, 4),
+            }
+        )
+        idx += 1
+        if start + window >= n:
+            break
+        start += step
+
+    labels = [w["classification"] for w in windows]
+    changes = [i for i in range(1, len(labels)) if labels[i] != labels[i - 1]]
+    counts = Counter(labels)
+    return {
+        "window_size": window,
+        "step": step,
+        "n_windows": len(windows),
+        "windows": windows,
+        "regime_summary": {
+            "dominant": (counts.most_common(1)[0][0] if counts else None),
+            "counts": dict(counts),
+            "change_points": changes,  # window indices where the regime flips
+        },
+    }
+
+
 def analyze_file(path: str, *, sep: str | None = None) -> Dict[str, object]:
     """Read a captured token stream from ``path`` and analyse it.
 

@@ -179,6 +179,36 @@ class StandardMotifDetector:
                 )
             )
 
+        # --- Entropy Cascade (regime split): first half vs second half (§5.7). --
+        split = self._entropy_regime_split(bv.entropy)
+        if split is not None:
+            rel, direction = split
+            motifs.append(
+                Motif(
+                    MotifType.ENTROPY_CASCADE,
+                    confidence=min(1.0, rel),
+                    span=(0, n - 1),
+                    detail=direction,
+                )
+            )
+
+        # --- Role-level motifs (spec §5): pattern-match the role string. --------
+        # Gate the role-level anchor cycle on a genuine low-entropy anchor so the
+        # honest-motif contract (C-8) holds regardless of detection path.
+        motifs.extend(
+            self._role_level_motifs(
+                roles.roles, allow_anchor_cycle=bool(cycle_anchors)
+            )
+        )
+
+        # Dedupe by type, keeping the highest-confidence evidence for each motif.
+        best_by_type: Dict[MotifType, Motif] = {}
+        for m in motifs:
+            cur = best_by_type.get(m.type)
+            if cur is None or m.confidence > cur.confidence:
+                best_by_type[m.type] = m
+        motifs = list(best_by_type.values())
+
         # --- Hybrid / Null bookkeeping. ----------------------------------------
         distinct_types = {m.type for m in motifs}
         if len(distinct_types) >= 2:
@@ -193,6 +223,119 @@ class StandardMotifDetector:
             motifs.append(Motif(MotifType.NULL, confidence=1.0, detail="no structure"))
 
         return MotifSet(motifs=tuple(motifs))
+
+    @staticmethod
+    def _role_level_motifs(
+        roles: Tuple[Role, ...], *, allow_anchor_cycle: bool = True
+    ) -> List[Motif]:
+        """Detect motifs as patterns over the role sequence (spec §5).
+
+        Complementary to the symbol/entropy detectors; deduped by the caller.
+        """
+        out: List[Motif] = []
+        n = len(roles)
+        if n < 2:
+            return out
+        seq = [r.value for r in roles]
+
+        # Terminator Lock: CONTENT -> TERMINATOR -> ANCHOR (segment hand-off).
+        locks = sum(
+            1
+            for i in range(n - 2)
+            if roles[i] == Role.CONTENT_BLOCK
+            and roles[i + 1] == Role.TERMINATOR
+            and roles[i + 2] == Role.ANCHOR
+        )
+        if locks == 0:  # relaxed form: TERMINATOR -> ANCHOR
+            locks = sum(
+                1
+                for i in range(n - 1)
+                if roles[i] == Role.TERMINATOR and roles[i + 1] == Role.ANCHOR
+            )
+        if locks:
+            out.append(
+                Motif(
+                    MotifType.TERMINATOR_LOCK,
+                    confidence=min(1.0, 0.5 + 0.2 * locks),
+                    detail=f"role hand-off x{locks}",
+                )
+            )
+
+        # Boundary Frame: FRAME ... (content) ... FRAME enclosing material.
+        frame_idx = [i for i, r in enumerate(roles) if r == Role.FRAME]
+        if len(frame_idx) >= 2:
+            lo, hi = frame_idx[0], frame_idx[-1]
+            if any(roles[k] != Role.FRAME for k in range(lo + 1, hi)):
+                out.append(
+                    Motif(
+                        MotifType.BOUNDARY_FRAME,
+                        confidence=0.6,
+                        span=(lo, hi),
+                        detail="frame-enclosed content",
+                    )
+                )
+
+        # Modular Block: a repeated role n-gram (>=2 long, >=2 distinct roles).
+        for L in range(min(5, n), 1, -1):
+            seen: Dict[Tuple[str, ...], int] = defaultdict(int)
+            for i in range(0, n - L + 1):
+                seen[tuple(seq[i : i + L])] += 1
+            repeated = [
+                (g, c) for g, c in seen.items() if c >= 2 and len(set(g)) >= 2
+            ]
+            if repeated:
+                g, c = max(repeated, key=lambda kv: kv[1])
+                out.append(
+                    Motif(
+                        MotifType.MODULAR_BLOCK,
+                        confidence=min(1.0, 0.4 + 0.15 * c),
+                        detail=f"role template {'-'.join(g)} x{c}",
+                    )
+                )
+                break
+
+        # Anchor-Driven Cycle: identical role pattern between consecutive anchors.
+        anchor_idx = [i for i, r in enumerate(roles) if r == Role.ANCHOR]
+        if allow_anchor_cycle and len(anchor_idx) >= 3:
+            segments = [
+                tuple(seq[a:b]) for a, b in zip(anchor_idx, anchor_idx[1:])
+            ]
+            counts: Dict[Tuple[str, ...], int] = defaultdict(int)
+            for s in segments:
+                counts[s] += 1
+            top, c = max(counts.items(), key=lambda kv: kv[1])
+            if c >= 2:
+                out.append(
+                    Motif(
+                        MotifType.ANCHOR_DRIVEN_CYCLE,
+                        confidence=min(1.0, 0.5 + 0.15 * c),
+                        detail=f"inter-anchor cycle x{c}",
+                    )
+                )
+        return out
+
+    @staticmethod
+    def _entropy_regime_split(entropy: Tuple[float, ...], threshold: float = 0.35):
+        """Compare mean entropy of the two halves (spec §5.7).
+
+        Returns ``(rel_diff, direction)`` when the halves differ by at least
+        ``threshold`` (relative), else None. Requires n >= 6 so a worked example
+        (n = 10–12) needs a *strong* shift to register — guarding against spurious
+        cascades on short, stationary sequences.
+        """
+        n = len(entropy)
+        if n < 6:
+            return None
+        mid = n // 2
+        first = sum(entropy[:mid]) / mid
+        second = sum(entropy[mid:]) / (n - mid)
+        hi = max(first, second)
+        if hi <= 1e-9:
+            return None
+        rel = (hi - min(first, second)) / hi
+        if rel >= threshold:
+            return rel, ("structure->noise" if second > first else "noise->structure")
+        return None
 
     @staticmethod
     def _entropy_cascade(entropy: Tuple[float, ...]):

@@ -197,6 +197,62 @@ a long sequence of token/stable IDs — with no coupling, just a way to read a f
 
 ---
 
+## Iteration 10 — Role-level motif matching (spec §5)
+
+- **Hypothesis:** Detecting motifs as patterns over the *role* sequence
+  (`CONTENT→TERMINATOR→ANCHOR` = Terminator Lock, `FRAME…FRAME` = Boundary Frame,
+  repeated role n-grams = Modular Block, repeated inter-anchor role segments =
+  Anchor-Driven Cycle) will enrich and corroborate the symbol/entropy-based
+  detectors. Deduping by motif type (keep max confidence) means no existing
+  motif assertion breaks.
+- **Predicted failures if wrong:** duplicate motif types double-counted; HYBRID
+  bookkeeping miscounts after the merge; a worked-example motif assertion flips.
+- **Implemented:** `_role_level_motifs` (terminator lock, boundary frame, modular
+  role block, inter-anchor cycle), merged + deduped by type; anchor-cycle gated on
+  a genuine low-entropy anchor to preserve C-8; `test_role_motifs.py`.
+- **Test:** gate green — TESTS 70/70 ✓, INVARIANTS 11/11 ✓; no duplicate motif
+  types in any report.
+- **Marked:** ✅ Confirmed. Role-level detectors corroborate the entropy detectors
+  without breaking a single existing motif assertion; honesty gate verified by test.
+
+---
+
+## Iteration 11 — Entropy Cascade as a half-vs-half regime split (spec §5.7)
+
+- **Hypothesis:** Comparing mean entropy of the first vs second half of the stream
+  detects a "structure → noise" (or noise → structure) regime shift that the
+  existing monotonic-run cascade misses on long streams — a natural health signal.
+  Deduping with the monotonic detector keeps one `ENTROPY_CASCADE` motif.
+- **Predicted failures if wrong:** a worked example (n=10–12) trips the split and
+  gains a spurious cascade; threshold too low → false positives on noisy-but-
+  stationary streams.
+- **Implemented:** `_entropy_regime_split` (half-vs-half, rel ≥ 0.35, n ≥ 6),
+  deduped into one `ENTROPY_CASCADE`; `test_regime_split.py`.
+- **Test:** gate green — TESTS 74/74 ✓, INVARIANTS 11/11 ✓; structure→noise stream
+  fires, stationary stream does not, worked examples unchanged.
+- **Marked:** ✅ Confirmed exactly as predicted.
+
+---
+
+## Iteration 12 — Windowed regime timeline
+
+- **Hypothesis:** A long live stream is better measured as a *timeline* of regimes
+  than one global verdict. `analyze_windows(seq, window, step)` will classify each
+  window and report where the regime shifts — composing cleanly with §5.7 and
+  giving the RFE use-case a per-window health trace.
+- **Predicted failures if wrong:** off-by-one window spans at the tail; a final
+  short window destabilising the classifier; empty input.
+- **Implemented:** `analyze_windows(seq, window, step)` → per-window class +
+  `change_points` + dominant regime; `test_windows.py`.
+- **Test:** gate green — TESTS 80/80 ✓, INVARIANTS 11/11 ✓.
+- **Marked:** ✅ Confirmed. Windows tile the stream with no gaps, the tail window
+  is handled, and a structure→noise stream surfaces a regime change point.
+
+> **Cycle 1 shipped** (iterations 10–12) → PR #3 → merged. Autonomous loop:
+> 3 iterations per PR, gate green at every step.
+
+---
+
 ## Loop status: STABLE GREEN (measurement phase)
 
 9 iterations, gate green at every commit point. The engine is now a
