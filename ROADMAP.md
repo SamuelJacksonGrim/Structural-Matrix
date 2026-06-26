@@ -141,6 +141,6 @@ no install, no jargon wall, and it feels good to use.*
 
 ## Credits
 - **Mark Thomas** — Rogue Architect; originator of the Structural Matrix methodology
-  and the developer specification; architect of RFE-Core2.
-- Project lead: Sam (SolarynVeyr).
+  and the developer specification.
+- Project lead / repository owner: _TBD — pending preferred credit_.
 - Implementation: built with Claude Code via the autonomous build/test/refine loop.
