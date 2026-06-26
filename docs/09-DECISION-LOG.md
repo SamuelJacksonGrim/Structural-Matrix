@@ -87,27 +87,25 @@ alternatives weighed, and the consequence. Referenced by ID from the other docs.
 
 ## D-008 · The engine is a standalone universal instrument (no source coupling)
 
-- **Context:** The Structural Matrix is intended, among other things, to measure
-  the output of RFE-Core2 (a symbolic ecology). The tempting move was to build an
-  adapter that couples the two.
+- **Context:** The engine may be pointed at the output of other programs. The
+  tempting move was to build an adapter that couples it to a specific source.
 - **Decision:** Keep the engine **domain-agnostic and uncoupled**. To measure
   another program, capture its emitted stream and feed it in read-only
   (`analyze_file` / `--file`). No write-back, no knowledge of the source.
-- **Alternatives:** A bidirectional integration (analyzer feeds the reaper /
-  `signal_*` methods) wired in now.
+- **Alternatives:** A bidirectional integration wired to a particular source now.
 - **Why:** Universality is the whole premise — it eats any symbol sequence and
   ignores meaning. Measurement-as-a-separate-program is the least-foreclosing path:
-  both halves stay independent, nothing is over-committed, and a future closed loop
-  remains fully optional. Freezing an integration contract now would spend
-  optionality we can't yet justify.
+  the instrument and any source stay independent, nothing is over-committed, and a
+  future closed loop remains fully optional. Freezing an integration contract now
+  would spend optionality we can't yet justify.
 - **Consequence:** The only integration surface is a read-only tap. Any future
-  control loop (verdict → reaper) is a separate, opt-in seam designed against the
-  real `signal_*` inputs when they're known — not inferred today.
+  control loop (verdict acting back on a source) is a separate, opt-in seam designed
+  against that source's real inputs when known — not inferred today.
 
 ## D-009 · Anchors are recognised by periodicity, not only transition-determinism
 
 - **Context (loop iteration 8):** A symbol recurring at a perfectly regular period
-  but with churning successors (a periodic sacred-marker amid reaping) was
+  but with churning successors (a periodic marker amid churn) was
   classified RANDOM, because the engine only saw anchors via low transition
   entropy.
 - **Decision:** Add a strictly-gated `periodic_anchor_strength` feature (regularity

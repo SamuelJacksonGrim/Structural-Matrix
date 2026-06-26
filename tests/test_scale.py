@@ -1,6 +1,6 @@
 """Scale & ingestion tests — the engine as a standalone instrument for ID streams.
 
-A captured stream from another program (e.g. RFE-Core2 stable_ids) is a long
+A captured stream from another program (e.g. token / stable IDs) is a long
 sequence of integer-like tokens with a large, often *growing* alphabet. These
 tests prove the universal instrument ingests that shape without coupling, stays
 total, and runs fast.
@@ -27,7 +27,7 @@ def test_large_growing_id_stream_is_total_and_fast():
         if not live or rng.random() < 0.03:
             live.append(next_id)
             next_id += 1
-            if len(live) > 500:  # bound the working set ("reaping")
+            if len(live) > 500:  # bound the working set (churn)
                 live.pop(0)
         stream.append(str(rng.choice(live)))
 
