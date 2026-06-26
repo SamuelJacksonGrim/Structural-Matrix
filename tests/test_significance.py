@@ -12,6 +12,23 @@ def test_structured_stream_is_significant():
     assert result["significant"] is True
 
 
+def test_markov_transition_structure_is_significant():
+    # A first-order Markov stream: strong which-follows-which structure, but no
+    # repeated multi-symbol templates or clustering. This is the kind of structure
+    # (natural-language / Voynich-like) the scalar must catch via predictability.
+    import random as _r
+
+    rng = _r.Random(0)
+    k = 8
+    successor = {s: (s * 3 + 1) % k for s in range(k)}  # a deterministic-ish map
+    seq, cur = [], 0
+    for _ in range(500):
+        seq.append(str(cur))
+        cur = successor[cur] if rng.random() < 0.85 else rng.randrange(k)
+    result = structure_significance(seq, trials=200, seed=1)
+    assert result["significant"] is True, result
+
+
 def test_all_distinct_stream_is_not_significant():
     # No structure in any ordering -> must NOT be flagged significant.
     seq = "Q W E R T Y U I O P"

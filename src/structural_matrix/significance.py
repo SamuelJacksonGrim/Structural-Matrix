@@ -34,11 +34,19 @@ def _structuredness(report: AnalysisReport) -> float:
         report.cohesion_vector,
         report.motifs,
     )
+    # `predictability` (mean dominant-transition probability) captures Markov /
+    # which-follows-which structure — the signature of natural language and of the
+    # Voynich glyph stream. It is order-sensitive (shuffling destroys it), so the
+    # permutation test stays valid: a random control's predictability is unchanged
+    # by shuffling and reads as non-significant, while real transition structure
+    # reads as significant. Without this term the scalar only saw repeated
+    # templates / clustering / periodicity and was blind to transition structure.
     return max(
         f.modular_strength,
         f.cluster_strength,
         f.anchor_cycle_conf,
         f.periodic_anchor_strength,
+        f.predictability,
     )
 
 

@@ -394,3 +394,45 @@ Next candidate hypotheses, when work resumes:
 - H12: a streaming/incremental mode so a long live stream can be measured in
   windows rather than all at once.
 
+---
+
+## Iteration 19 — Real-data validation on the Voynich manuscript (Phase 2)
+
+First test on a real, large, externally-sourced corpus: the full Takahashi/EVA
+transliteration of the Voynich manuscript (40,377 words / 191,020 glyphs, 22
+glyphs), pulled from voynich.nu (LSI IVTFF). The manuscript is the project's
+founding use-case and a known-structured text (established scholarship).
+
+- **Hypothesis:** the instrument will confirm the manuscript is structured
+  (significant, non-random).
+- **Result — FAILED at scale (the important finding):** on the full glyph stream
+  the significance test reported **not significant (p=0.36)**, with observed
+  structuredness (0.029) *below* its own shuffled baseline (0.094) — i.e. it
+  could not tell real Voynich from random noise (random-glyph control: obs 0.006).
+- **Diagnosis:** the structuredness scalar was `max(modular, cluster, anchor_cycle,
+  periodic)` — all blind to **transition / which-follows-which structure**, which
+  is exactly where Voynich's (and natural language's) structure lives. The earlier
+  encouraging 244-char result was a small-n artifact (periodicity firing by chance).
+- **Fix:** add the order-sensitive `predictability` term (mean dominant-transition
+  probability) to the structuredness scalar. Shuffling destroys it, so the
+  permutation test stays valid. Regression test added (`test_markov_...`).
+- **Confirmation (recorded, 20k-glyph sample, 200 trials):**
+
+  | stream | significant | p | observed | shuffled |
+  |---|---|---|---|---|
+  | Voynich glyphs | **True** | **0.0050** | 0.445 | 0.196 |
+  | Voynich words | False | 0.44 | 0.805 | 0.826 |
+  | random control | False | 0.91 | 0.059 | 0.060 |
+
+- **Marked:** ✅ Fixed and validated. The instrument now independently confirms
+  Voynich is structured (p=0.005) with a *computed* p-value, correctly rejects the
+  random control (p=0.91), and finds word-*order* insignificant — consistent with
+  the structure being morphological (sub-word), the core of Mark's method.
+- **Measured cadence reality-check** (turns asserted numbers into real ones):
+  37.8% of words end `-y`, 16.4% `-dy`, 10.1% `-edy`, 9.3% `-aiin`, 3.3% `-daiin`;
+  top words `n`(1232), `daiin`(849), `ol`(659), `chedy`(554), `aiin`(544). Massive,
+  unambiguous suffix regularity — the structure is real and now detectable.
+- **Surprise → next:** the *classifier label* still mislabels Voynich glyphs as
+  `NATURAL` (the label, unlike significance, has no transition term yet) — Phase 2.2.
+  Word-order significance is weak (distinct-ratio) — also 2.2.
+
