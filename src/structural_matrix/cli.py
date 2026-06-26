@@ -14,9 +14,17 @@ import json
 import sys
 from typing import List, Optional, Tuple
 
+from .analyzer import (
+    analyze_sequence,
+    analyze_windows,
+    measure,
+    to_json_safe,
+)
 from .mapping import get_mapper
 from .pipeline import StructuralMatrix
 from .serialization import report_to_dict
+from .significance import structure_significance
+from .stability import verdict_stability
 from .types import Sequence
 
 
@@ -61,7 +69,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--proximity",
         help='3D proximity triples "i,j,w;i,j,w" (0-based indices)',
     )
-    p.add_argument("--json", action="store_true", help="emit full JSON report")
+    p.add_argument("--json", action="store_true", help="emit JSON output")
+
+    # Output modes (default: the engine report). These compose with the input
+    # flags above; --measure folds in the others as opt-in sections.
+    mode = p.add_argument_group("output modes")
+    mode.add_argument("--spec", action="store_true", help="emit the spec-conformant dict")
+    mode.add_argument(
+        "--measure",
+        action="store_true",
+        help="emit the full instrument readout (verdict + opt-in analyses)",
+    )
+    mode.add_argument("--windows", type=int, metavar="N", help="emit a windowed regime timeline")
+    mode.add_argument(
+        "--significance",
+        type=int,
+        metavar="TRIALS",
+        help="emit a permutation significance test with TRIALS shuffles",
+    )
+    mode.add_argument("--stability", action="store_true", help="emit the verdict stability metric")
     return p
 
 
@@ -104,9 +130,32 @@ def main(argv: Optional[List[str]] = None) -> int:
     sep = "" if args.chars else args.sep
     seq = Sequence.from_text(raw, sep=sep)
 
+    # Output modes (precedence: measure > windows > significance > stability > spec
+    # > default report). The analysis helpers all emit JSON-able dicts.
+    if args.measure:
+        out = measure(
+            seq,
+            significance_trials=args.significance or 0,
+            stability=args.stability,
+            window=args.windows,
+        )
+        print(json.dumps(out, indent=2))
+        return 0
+    if args.windows is not None:
+        print(json.dumps(analyze_windows(seq, args.windows), indent=2))
+        return 0
+    if args.significance is not None:
+        print(json.dumps(structure_significance(seq, trials=args.significance), indent=2))
+        return 0
+    if args.stability:
+        print(json.dumps(verdict_stability(seq), indent=2))
+        return 0
+    if args.spec:
+        print(json.dumps(analyze_sequence(seq, json_safe=True), indent=2))
+        return 0
+
     engine = StructuralMatrix(mapper=get_mapper(args.mapping))
     report = engine.analyze(seq, proximity=_parse_proximity(args.proximity))
-
     if args.json:
         print(json.dumps(report_to_dict(report), indent=2))
     else:

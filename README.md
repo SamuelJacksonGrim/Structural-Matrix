@@ -68,7 +68,25 @@ analyze_file("captured_stream.txt")["classification"]    # regime of the stream
 It scales to long, growing-vocabulary ID streams (20k tokens in well under a
 second) and recognises periodic structural markers even when their neighbours
 churn — so a rhythmic "anchor" amid high local entropy reads as structure, not
-noise.
+noise. See [`docs/MEASUREMENT.md`](docs/MEASUREMENT.md) for the full guide.
+
+### Don't just trust the verdict — interrogate it
+
+```python
+from structural_matrix import structure_significance, verdict_stability, measure
+
+structure_significance("A B C A B C A B C")["significant"]   # True  (not chance)
+verdict_stability("Q W E R T Y U I O P")["stability"]         # "robust"/"marginal"/"fragile"
+measure(stream, significance_trials=500, stability=True, window=1000)  # one full readout
+```
+
+| Capability | Function | CLI |
+|---|---|---|
+| Structural verdict | `analyze_sequence` | `--spec` |
+| Significance (vs chance) | `structure_significance` | `--significance N` |
+| Verdict robustness | `verdict_stability` | `--stability` |
+| Regime timeline | `analyze_windows` | `--windows N` |
+| Everything at once | `measure` | `--measure` |
 
 With 3D folding data (proximity contacts override the symbolic signal):
 
