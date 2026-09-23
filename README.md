@@ -4,6 +4,15 @@
 [![dual-license](https://img.shields.io/badge/dual--license-AGPL--3.0--only%20or%20commercial-blueviolet)](LICENSING.md)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.9-3776AB?logo=python&logoColor=white)](https://www.python.org)
 
+## License
+
+This project is dual-licensed under **AGPL-3.0-only** OR a commercial license.
+
+- [LICENSE](LICENSE) — GNU AGPL-3.0-only (the free track)
+- [LICENSING.md](LICENSING.md) — how the two tracks work
+- [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) — the commercial agreement
+- [NOTICE](NOTICE) — copyright, SPDX identifier, and provenance
+
 
 > A behaviour-first engine that extracts **universal structure** from symbolic
 > systems — by ignoring meaning and measuring how symbols *behave*.
@@ -157,6 +166,3 @@ pytest -q                   # the test suite alone
 The build is driven by an autonomous loop (OBSERVE → HYPOTHESIZE → IMPLEMENT →
 TEST → MARK → REFINE); its diary is [`loop/DEVLOG.md`](loop/DEVLOG.md).
 
-## License
-
-MIT.
