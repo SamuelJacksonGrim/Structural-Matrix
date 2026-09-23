@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A behaviour-first engine for extracting universal structure from symbolic systems."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = { text = "AGPL-3.0-only" }
 authors = [{ name = "Structural Matrix" }]
 keywords = ["entropy", "symbolic", "structure", "classification", "behaviour"]
 dependencies = []
